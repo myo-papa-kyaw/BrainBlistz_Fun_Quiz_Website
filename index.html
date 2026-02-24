@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuizQuest | Test Your Knowledge</title>
+  <meta name="description" content="Fun, interactive quiz game with multiple categories. Pure HTML/CSS/JS.">
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="assets/icons/favicon.png" type="image/png">
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+    <span class="sun">☀️</span>
+    <span class="moon">🌙</span>
+  </button>
+
+  <!-- Header -->
+  <header class="header">
+    <h1 class="logo">🎯 QuizQuest</h1>
+    <p class="tagline">Test your knowledge. Have fun. Beat your score!</p>
+  </header>
+
+  <!-- Main App Container -->
+  <main id="app" class="app">
+    
+    <!-- VIEW 1: HOME / CATEGORY SELECT -->
+    <section id="homeView" class="view active">
+      <div class="card hero">
+        <h2>Choose Your Challenge</h2>
+        <p>Select a category to start the quiz. 10 questions. 15 seconds each. Go!</p>
+        
+        <div class="category-grid">
+          <button class="category-btn" data-category="general">
+            <span class="icon">🌍</span>
+            <strong>General Knowledge</strong>
+            <span class="desc">Geography, history, science & more</span>
+          </button>
+          <button class="category-btn" data-category="programming">
+            <span class="icon">💻</span>
+            <strong>Programming</strong>
+            <span class="desc">Code, web tech & computer science</span>
+          </button>
+          <button class="category-btn" data-category="fun">
+            <span class="icon">🎬</span>
+            <strong>Fun & Pop Culture</strong>
+            <span class="desc">Movies, music, games & trivia</span>
+          </button>
+        </div>
+
+        <div class="home-actions">
+          <button id="highScoresBtn" class="btn secondary">🏆 View High Scores</button>
+          <button id="howToBtn" class="btn text">❓ How to Play</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: QUIZ -->
+    <section id="quizView" class="view">
+      <div class="quiz-header">
+        <div class="progress">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="quiz-info">
+          <span id="questionCounter">Question 1/10</span>
+          <span class="timer" id="timer">⏱️ 15s</span>
+          <span id="scoreDisplay">Score: 0</span>
+        </div>
+      </div>
+
+      <div class="card quiz-card">
+        <h2 id="questionText">Question loads here...</h2>
+        
+        <div id="optionsContainer" class="options-grid">
+          <!-- Options injected by JS -->
+        </div>
+
+        <div id="feedback" class="feedback hidden">
+          <!-- Feedback injected by JS -->
+        </div>
+
+        <button id="nextBtn" class="btn primary hidden">Next Question →</button>
+      </div>
+    </section>
+
+    <!-- VIEW 3: RESULTS -->
+    <section id="resultsView" class="view">
+      <div class="card results-card">
+        <div class="results-header">
+          <h2 id="resultsTitle">Quiz Complete! 🎉</h2>
+          <div class="final-score" id="finalScore">8/10</div>
+          <p id="resultsMessage">Great job! You're a knowledge ninja.</p>
+        </div>
+
+        <div class="results-stats">
+          <div class="stat">
+            <span class="label">Correct</span>
+            <span class="value correct" id="correctCount">8</span>
+          </div>
+          <div class="stat">
+            <span class="label">Incorrect</span>
+            <span class="value incorrect" id="incorrectCount">2</span>
+          </div>
+          <div class="stat">
+            <span class="label">Accuracy</span>
+            <span class="value" id="accuracy">80%</span>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button id="playAgainBtn" class="btn primary">🔄 Play Again</button>
+          <button id="viewScoresBtn" class="btn secondary">🏆 High Scores</button>
+          <button id="shareBtn" class="btn text">📤 Share Result</button>
+        </div>
+
+        <!-- Confetti Canvas -->
+        <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- MODAL: HIGH SCORES -->
+    <dialog id="scoresModal" class="modal">
+      <div class="modal-content">
+        <h3>🏆 High Scores</h3>
+        <table id="scoresTable">
+          <thead>
+            <tr><th>Rank</th><th>Name</th><th>Score</th><th>Category</th><th>Date</th></tr>
+          </thead>
+          <tbody><!-- Populated by JS --></tbody>
+        </table>
+        <button id="closeScoresBtn" class="btn secondary">Close</button>
+        <button id="clearScoresBtn" class="btn text danger">Clear My Scores</button>
+      </div>
+    </dialog>
+
+    <!-- MODAL: HOW TO PLAY -->
+    <dialog id="howToModal" class="modal">
+      <div class="modal-content">
+        <h3>❓ How to Play</h3>
+        <ol>
+          <li>Choose a category from the home screen</li>
+          <li>Answer 10 multiple-choice questions</li>
+          <li>You have <strong>15 seconds</strong> per question</li>
+          <li>Get instant feedback after each answer</li>
+          <li>See your final score and try to beat it!</li>
+          <li>Top scores are saved locally on your device</li>
+        </ol>
+        <button id="closeHowToBtn" class="btn primary">Got it!</button>
+      </div>
+    </dialog>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>SET08101 Web Technologies Coursework • Pure HTML/CSS/JS • <a href="https://github.com/yourusername/quiz-quest" target="_blank">View Source</a></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/quiz.js"></script>
+</body>
+</html>
