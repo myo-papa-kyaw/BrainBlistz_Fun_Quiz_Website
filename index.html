@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QuizQuest | Test Your Knowledge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainBlistz | Test Your Knowledge</title>
   <meta name="description" content="Fun, interactive quiz game with multiple categories. Pure HTML/CSS/JS.">
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="assets/icons/favicon.png" type="image/png">
 </head>
+
 <body>
   <!-- Theme Toggle -->
   <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
@@ -17,19 +19,19 @@
 
   <!-- Header -->
   <header class="header">
-    <h1 class="logo">🎯 QuizQuest</h1>
+    <h1 class="logo">🎯 BrainBlistz</h1>
     <p class="tagline">Test your knowledge. Have fun. Beat your score!</p>
   </header>
 
   <!-- Main App Container -->
   <main id="app" class="app">
-    
+
     <!-- VIEW 1: HOME / CATEGORY SELECT -->
     <section id="homeView" class="view active">
       <div class="card hero">
         <h2>Choose Your Challenge</h2>
         <p>Select a category to start the quiz. 10 questions. 15 seconds each. Go!</p>
-        
+
         <div class="category-grid">
           <button class="category-btn" data-category="general">
             <span class="icon">🌍</span>
@@ -70,7 +72,7 @@
 
       <div class="card quiz-card">
         <h2 id="questionText">Question loads here...</h2>
-        
+
         <div id="optionsContainer" class="options-grid">
           <!-- Options injected by JS -->
         </div>
@@ -124,7 +126,13 @@
         <h3>🏆 High Scores</h3>
         <table id="scoresTable">
           <thead>
-            <tr><th>Rank</th><th>Name</th><th>Score</th><th>Category</th><th>Date</th></tr>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>Score</th>
+              <th>Category</th>
+              <th>Date</th>
+            </tr>
           </thead>
           <tbody><!-- Populated by JS --></tbody>
         </table>
@@ -145,16 +153,18 @@
           <li>See your final score and try to beat it!</li>
           <li>Top scores are saved locally on your device</li>
         </ol>
-        <button id="closeHowToBtn" class="btn primary">Got it!</button>
+        <!-- ✅ Button type="button" prevents form submission issues -->
+        <button id="closeHowToBtn" class="btn primary" type="button">Got it!</button>
       </div>
     </dialog>
 
   </main>
-  
+
 
   <!-- Footer -->
   <footer class="footer">
-    <p>SET08101 Web Technologies Coursework • Pure HTML/CSS/JS • <a href="https://github.com/yourusername/quiz-quest" target="_blank">View Source</a></p>
+    <p>SET08101 Web Technologies Coursework • Pure HTML/CSS/JS • <a href="https://github.com/yourusername/quiz-quest"
+        target="_blank">View Source</a></p>
   </footer>
 
   <!-- Scripts -->
@@ -162,4 +172,5 @@
   <script src="js/utils.js"></script>
   <script src="js/quiz.js"></script>
 </body>
+
 </html>
