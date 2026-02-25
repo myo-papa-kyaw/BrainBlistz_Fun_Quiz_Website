@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BrainBlistz | Test Your Knowledge</title>
+  <title>🎯 BrainBlistz | Test Your Knowledge</title>
   <meta name="description" content="Fun, interactive quiz game with multiple categories. Pure HTML/CSS/JS.">
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="icon" href="assets/icons/favicon.png" type="image/png">
@@ -19,7 +19,7 @@
 
   <!-- Header -->
   <header class="header">
-    <h1 class="logo">🎯 BrainBlistz</h1>
+    <h1 id="homeLogo" class="logo" role="button" tabindex="0" aria-label="Go to home">🎯 BrainBlistz</h1>
     <p class="tagline">Test your knowledge. Have fun. Beat your score!</p>
   </header>
 
@@ -154,7 +154,7 @@
           <li>Top scores are saved locally on your device</li>
         </ol>
         <!-- ✅ Button type="button" prevents form submission issues -->
-        <button id="closeHowToBtn" class="btn primary" type="button">Got it!</button>
+        <button id="closeHowToBtn" class="btn primary" type="button">Got it! Let's Play.</button>
       </div>
     </dialog>
 
@@ -162,10 +162,10 @@
 
 
   <!-- Footer -->
-  <footer class="footer">
+  <!-- <footer class="footer">
     <p>SET08101 Web Technologies Coursework • Pure HTML/CSS/JS • <a href="https://github.com/yourusername/quiz-quest"
         target="_blank">View Source</a></p>
-  </footer>
+  </footer> -->
 
   <!-- Scripts -->
   <script src="js/data.js"></script>
