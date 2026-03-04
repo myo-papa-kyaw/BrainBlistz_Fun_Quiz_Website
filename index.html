@@ -158,6 +158,31 @@
       </div>
     </dialog>
 
+    <!-- MODAL: PLAYER NAME -->
+    <dialog id="playerNameModal" class="modal">
+      <div class="modal-content player-name-content">
+        <h3>Enter Player Name</h3>
+        <p class="player-name-subtitle">Your score will be saved with this name.</p>
+        <form id="playerNameForm" novalidate>
+          <label for="playerNameInput" class="player-name-label">Name</label>
+          <input
+            id="playerNameInput"
+            class="player-name-input"
+            type="text"
+            maxlength="24"
+            autocomplete="name"
+            placeholder="e.g. Alex"
+            required
+          />
+          <p id="playerNameError" class="player-name-error hidden">Please enter your name to start.</p>
+          <div class="modal-actions">
+            <button id="cancelPlayerNameBtn" class="btn text" type="button">Cancel</button>
+            <button id="savePlayerNameBtn" class="btn primary" type="submit">Start Quiz</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
   </main>
 
 

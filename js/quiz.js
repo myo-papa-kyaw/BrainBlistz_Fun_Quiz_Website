@@ -61,6 +61,11 @@ class QuizApp {
       clearScoresBtn: document.getElementById('clearScoresBtn'),
       howToModal: document.getElementById('howToModal'),
       closeHowToBtn: document.getElementById('closeHowToBtn'),
+      playerNameModal: document.getElementById('playerNameModal'),
+      playerNameForm: document.getElementById('playerNameForm'),
+      playerNameInput: document.getElementById('playerNameInput'),
+      playerNameError: document.getElementById('playerNameError'),
+      cancelPlayerNameBtn: document.getElementById('cancelPlayerNameBtn'),
 
       // Controls
       themeToggle: document.getElementById('themeToggle'),
@@ -212,10 +217,13 @@ class QuizApp {
 
   // ===== QUIZ FLOW =====
   startQuiz(category, mode = 'normal') {
-    if (!this.promptForPlayerName()) {
-      return;
-    }
+    this.promptForPlayerName().then((isConfirmed) => {
+      if (!isConfirmed) return;
+      this.beginQuiz(category, mode);
+    });
+  }
 
+  beginQuiz(category, mode = 'normal') {
     this.state.currentCategory = category;
     this.state.currentQuestionIndex = 0;
     this.state.score = 0;
@@ -248,18 +256,86 @@ class QuizApp {
 
   promptForPlayerName() {
     const currentName = localStorage.getItem('brainBlistzPlayerName') || '';
-    const input = prompt('Enter your name to start the quiz:', currentName);
+    const modal = this.elements.playerNameModal;
+    const form = this.elements.playerNameForm;
+    const input = this.elements.playerNameInput;
+    const error = this.elements.playerNameError;
+    const cancelBtn = this.elements.cancelPlayerNameBtn;
 
-    if (input === null) return false;
-
-    const trimmedName = input.trim();
-    if (!trimmedName) {
-      this.showNotification('Please enter your name to play.', 'error');
-      return false;
+    // Fallback if modal elements are unavailable.
+    if (!modal || !form || !input || !error || !cancelBtn) {
+      const fallbackInput = prompt('Enter your name to start the quiz:', currentName);
+      if (fallbackInput === null) return Promise.resolve(false);
+      const trimmedFallbackName = fallbackInput.trim();
+      if (!trimmedFallbackName) {
+        this.showNotification('Please enter your name to play.', 'error');
+        return Promise.resolve(false);
+      }
+      localStorage.setItem('brainBlistzPlayerName', trimmedFallbackName);
+      return Promise.resolve(true);
     }
 
-    localStorage.setItem('brainBlistzPlayerName', trimmedName);
-    return true;
+    input.value = currentName;
+    error.classList.add('hidden');
+    error.textContent = 'Please enter your name to start.';
+
+    if (typeof modal.showModal === 'function') {
+      modal.showModal();
+    } else {
+      modal.classList.add('active');
+      modal.setAttribute('open', '');
+    }
+
+    setTimeout(() => input.focus(), 0);
+
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const finish = (result) => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+        if (typeof modal.close === 'function' && modal.hasAttribute('open')) {
+          modal.close();
+        } else {
+          modal.classList.remove('active');
+          modal.removeAttribute('open');
+        }
+        resolve(result);
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const trimmedName = input.value.trim();
+        if (!trimmedName) {
+          error.classList.remove('hidden');
+          input.focus();
+          return;
+        }
+        localStorage.setItem('brainBlistzPlayerName', trimmedName);
+        finish(true);
+      };
+
+      const handleCancel = (e) => {
+        if (e) e.preventDefault();
+        finish(false);
+      };
+
+      const handleDialogCancel = (e) => {
+        e.preventDefault();
+        finish(false);
+      };
+
+      const cleanup = () => {
+        form.removeEventListener('submit', handleSubmit);
+        cancelBtn.removeEventListener('click', handleCancel);
+        modal.removeEventListener('cancel', handleDialogCancel);
+      };
+
+      form.addEventListener('submit', handleSubmit);
+      cancelBtn.addEventListener('click', handleCancel);
+      modal.addEventListener('cancel', handleDialogCancel);
+    });
   }
 
   startDailyChallenge() {
