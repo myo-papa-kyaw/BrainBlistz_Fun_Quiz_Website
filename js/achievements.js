@@ -1,72 +1,67 @@
-// js/achievements.js - Achievement System
-
 const ACHIEVEMENTS = {
   firstGame: {
     id: 'firstGame',
     name: 'First Steps',
-    description: 'Complete your first quiz',
-    icon: '🎮',
+    description: 'Complete your first quiz.',
+    icon: 'FG',
     xp: 50,
     condition: (stats) => stats.totalGames >= 1
   },
   perfectScore: {
     id: 'perfectScore',
-    name: 'Perfect!',
-    description: 'Get 10/10 in any quiz',
-    icon: '🏆',
+    name: 'Perfect Score',
+    description: 'Get 10 out of 10 in any quiz.',
+    icon: '10',
     xp: 200,
-    condition: (stats, lastGame) => lastGame && lastGame.score === 10
+    condition: (stats, gameData) => gameData?.score === 10
   },
   speedDemon: {
     id: 'speedDemon',
     name: 'Speed Demon',
-    description: 'Answer a question in under 3 seconds',
-    icon: '⚡',
+    description: 'Answer one question in 3 seconds or less.',
+    icon: 'SP',
     xp: 100,
-    condition: (stats, lastGame, lastAnswerTime) => lastAnswerTime && lastAnswerTime <= 3
+    condition: (stats, gameData, fastestAnswerTime) => fastestAnswerTime !== null && fastestAnswerTime <= 3
   },
   categoryMaster: {
     id: 'categoryMaster',
     name: 'Category Master',
-    description: 'Complete all categories',
-    icon: '🌟',
+    description: 'Play all three categories.',
+    icon: 'CM',
     xp: 300,
-    condition: (stats) => {
-      const categories = new Set(stats.categoryScores?.map(c => c.category));
-      return categories.size >= 3;
-    }
+    condition: (stats) => new Set(stats.categoryScores.map((item) => item.category)).size >= 3
   },
   streakMaster: {
     id: 'streakMaster',
-    name: 'On Fire!',
-    description: 'Achieve a 5-question correct streak',
-    icon: '🔥',
+    name: 'On Fire',
+    description: 'Reach a 5-question correct streak.',
+    icon: 'ST',
     xp: 150,
-    condition: (stats, lastGame, lastAnswerTime, currentStreak) => currentStreak >= 5
+    condition: (stats, gameData, fastestAnswerTime, currentStreak) => currentStreak >= 5
   },
   dailyChampion: {
     id: 'dailyChampion',
     name: 'Daily Champion',
-    description: 'Complete 7 daily challenges',
-    icon: '📅',
+    description: 'Complete 7 daily challenges.',
+    icon: 'DC',
     xp: 250,
     condition: (stats) => stats.dailyChallenges >= 7
   },
   powerUser: {
     id: 'powerUser',
     name: 'Power User',
-    description: 'Use all power-ups in one game',
-    icon: '💪',
+    description: 'Use all three power-ups in one game.',
+    icon: 'PU',
     xp: 175,
-    condition: (stats, lastGame) => lastGame && lastGame.powerupsUsed?.length >= 3
+    condition: (stats, gameData) => new Set(gameData?.powerupsUsed || []).size >= 3
   },
   timeMaster: {
     id: 'timeMaster',
     name: 'Time Master',
-    description: 'Complete a quiz with 10+ seconds remaining total',
-    icon: '⏰',
+    description: 'Finish a quiz with a time bonus above 10.',
+    icon: 'TM',
     xp: 125,
-    condition: (stats, lastGame) => lastGame && lastGame.timeRemaining > 10
+    condition: (stats, gameData) => (gameData?.totalTime || 0) > 10
   }
 };
 
@@ -78,20 +73,19 @@ class AchievementSystem {
   }
 
   loadUnlocked() {
-    return JSON.parse(localStorage.getItem('brainBlistzAchievements')) || [];
+    return JSON.parse(localStorage.getItem('brainBlistzAchievements') || '[]');
   }
 
   loadStats() {
-    return JSON.parse(localStorage.getItem('brainBlistzStats')) || {
+    return JSON.parse(localStorage.getItem('brainBlistzStats') || 'null') || {
       totalGames: 0,
-      totalScore: 0,
       totalCorrect: 0,
       totalQuestions: 0,
       categoryScores: [],
       dailyChallenges: 0,
-      powerupsUsed: [],
       bestStreak: 0,
-      averageTime: 0
+      averageSavedTime: 0,
+      totalXp: 0
     };
   }
 
@@ -103,91 +97,74 @@ class AchievementSystem {
     localStorage.setItem('brainBlistzAchievements', JSON.stringify(this.unlockedAchievements));
   }
 
-  checkAchievements(gameData, currentStreak, lastAnswerTime) {
-    const newlyUnlocked = [];
-    
-    Object.values(this.achievements).forEach(achievement => {
-      if (!this.unlockedAchievements.includes(achievement.id)) {
-        if (achievement.condition(this.stats, gameData, lastAnswerTime, currentStreak)) {
-          this.unlockedAchievements.push(achievement.id);
-          newlyUnlocked.push(achievement);
-          this.stats.totalScore += achievement.xp;
-        }
-      }
-    });
+  updateStats(gameData) {
+    this.stats.totalGames += 1;
+    this.stats.totalCorrect += gameData.score;
+    this.stats.totalQuestions += 10;
+    this.stats.bestStreak = Math.max(this.stats.bestStreak, gameData.bestStreak || 0);
+    this.stats.totalXp += gameData.xpEarned || 0;
+    if (gameData.mode === 'daily') this.stats.dailyChallenges += 1;
 
-    if (newlyUnlocked.length > 0) {
-      this.saveUnlocked();
-      this.saveStats();
-      this.showAchievementNotification(newlyUnlocked);
+    const categoryEntry = this.stats.categoryScores.find((item) => item.category === gameData.category);
+    if (categoryEntry) {
+      categoryEntry.games += 1;
+      categoryEntry.totalScore += gameData.score;
+    } else {
+      this.stats.categoryScores.push({ category: gameData.category, games: 1, totalScore: gameData.score });
     }
 
-    return newlyUnlocked;
+    const previousGames = this.stats.totalGames - 1;
+    this.stats.averageSavedTime =
+      previousGames <= 0
+        ? gameData.totalTime || 0
+        : ((this.stats.averageSavedTime * previousGames) + (gameData.totalTime || 0)) / this.stats.totalGames;
+
+    this.saveStats();
+  }
+
+  checkAchievements(gameData, currentStreak, fastestAnswerTime) {
+    const unlockedNow = [];
+    Object.values(this.achievements).forEach((achievement) => {
+      if (this.unlockedAchievements.includes(achievement.id)) return;
+      if (!achievement.condition(this.stats, gameData, fastestAnswerTime, currentStreak)) return;
+      this.unlockedAchievements.push(achievement.id);
+      unlockedNow.push(achievement);
+      this.stats.totalXp += achievement.xp;
+    });
+
+    if (unlockedNow.length > 0) {
+      this.saveUnlocked();
+      this.saveStats();
+      this.showAchievementNotification(unlockedNow);
+    }
+
+    return unlockedNow;
   }
 
   showAchievementNotification(achievements) {
     const container = document.getElementById('newAchievements');
-    const parent = document.getElementById('unlockedAchievements');
-    
-    if (container && parent) {
-      container.innerHTML = achievements.map(a => `
-        <div class="achievement-badge">
-          <span class="achievement-icon">${a.icon}</span>
-          <div class="achievement-info">
-            <strong>${a.name}</strong>
-            <small>${a.description}</small>
-            <span class="xp-badge">+${a.xp} XP</span>
-          </div>
-        </div>
-      `).join('');
-      
-      parent.classList.remove('hidden');
-      
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        parent.classList.add('hidden');
-      }, 5000);
-    }
-  }
+    const wrapper = document.getElementById('unlockedAchievements');
+    if (!container || !wrapper) return;
 
-  updateStats(gameData) {
-    this.stats.totalGames++;
-    this.stats.totalCorrect += gameData.score;
-    this.stats.totalQuestions += 10;
-    
-    // Update category scores
-    const categoryIndex = this.stats.categoryScores.findIndex(
-      c => c.category === gameData.category
-    );
-    
-    if (categoryIndex >= 0) {
-      this.stats.categoryScores[categoryIndex].games++;
-      this.stats.categoryScores[categoryIndex].totalScore += gameData.score;
-    } else {
-      this.stats.categoryScores.push({
-        category: gameData.category,
-        games: 1,
-        totalScore: gameData.score
-      });
-    }
-    
-    // Update best streak
-    if (gameData.bestStreak > this.stats.bestStreak) {
-      this.stats.bestStreak = gameData.bestStreak;
-    }
-    
-    // Update average time
-    const totalTime = this.stats.averageTime * (this.stats.totalQuestions - 10) + gameData.totalTime;
-    this.stats.averageTime = totalTime / this.stats.totalQuestions;
-    
-    this.saveStats();
+    container.innerHTML = achievements.map((achievement) => `
+      <div class="achievement-badge">
+        <span class="achievement-icon">${achievement.icon}</span>
+        <div class="achievement-info">
+          <strong>${achievement.name}</strong>
+          <small>${achievement.description}</small>
+          <span class="xp-badge">+${achievement.xp} XP</span>
+        </div>
+      </div>
+    `).join('');
+
+    wrapper.classList.remove('hidden');
   }
 
   renderAchievements(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    container.innerHTML = Object.values(this.achievements).map(achievement => {
+    container.innerHTML = Object.values(this.achievements).map((achievement) => {
       const unlocked = this.unlockedAchievements.includes(achievement.id);
       return `
         <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
@@ -195,49 +172,51 @@ class AchievementSystem {
           <h4>${achievement.name}</h4>
           <p>${achievement.description}</p>
           <span class="xp-value">${achievement.xp} XP</span>
-          ${unlocked ? '<span class="unlocked-badge"><i class="fas fa-check"></i> Unlocked</span>' : ''}
+          ${unlocked ? '<span class="unlocked-badge">Unlocked</span>' : ''}
         </div>
       `;
     }).join('');
   }
 
-  renderStats(containerId) {
-    // Update header stats
-    document.getElementById('totalGames').textContent = this.stats.totalGames;
-    document.getElementById('avgScore').textContent = 
-      this.stats.totalQuestions > 0 
-        ? Math.round((this.stats.totalCorrect / this.stats.totalQuestions) * 100) + '%'
-        : '0%';
-    document.getElementById('achievementsCount').textContent = this.unlockedAchievements.length;
-    
-    // Update detailed stats
-    if (document.getElementById('statTotalGames')) {
-      document.getElementById('statTotalGames').textContent = this.stats.totalGames;
-      document.getElementById('statCorrectAnswers').textContent = this.stats.totalCorrect;
-      document.getElementById('statAvgTime').textContent = 
-        this.stats.averageTime > 0 ? this.stats.averageTime.toFixed(1) + 's' : '0s';
-      document.getElementById('statBestStreak').textContent = this.stats.bestStreak;
+  renderStats() {
+    this.setText('totalGames', this.stats.totalGames);
+    this.setText('avgScore', this.stats.totalQuestions > 0 ? `${Math.round((this.stats.totalCorrect / this.stats.totalQuestions) * 100)}%` : '0%');
+    this.setText('achievementsCount', this.unlockedAchievements.length);
+    this.setText('statTotalGames', this.stats.totalGames);
+    this.setText('statCorrectAnswers', this.stats.totalCorrect);
+    this.setText('statAvgTime', `${this.stats.averageSavedTime.toFixed(1)}s`);
+    this.setText('statBestStreak', this.stats.bestStreak);
+    this.setText('statPreviewGames', this.stats.totalGames);
+    this.setText('statPreviewBestStreak', this.stats.bestStreak);
+    this.setText('statPreviewXp', this.stats.totalXp);
+
+    const categoryStats = document.getElementById('categoryStats');
+    if (!categoryStats) return;
+
+    if (this.stats.categoryScores.length === 0) {
+      categoryStats.innerHTML = '<p class="empty-state">No category data yet. Play a quiz to populate this section.</p>';
+      return;
     }
 
-    // Render category stats
-    const categoryStats = document.getElementById('categoryStats');
-    if (categoryStats) {
-      categoryStats.innerHTML = this.stats.categoryScores.map(cat => {
-        const avgScore = Math.round((cat.totalScore / (cat.games * 10)) * 100);
-        return `
-          <div class="category-stat">
-            <span class="cat-name">${cat.category}</span>
-            <span class="cat-games">${cat.games} games</span>
-            <div class="cat-progress">
-              <div class="cat-progress-bar" style="width: ${avgScore}%"></div>
-            </div>
-            <span class="cat-avg">${avgScore}%</span>
+    categoryStats.innerHTML = this.stats.categoryScores.map((item) => {
+      const average = Math.round((item.totalScore / (item.games * 10)) * 100);
+      return `
+        <div class="category-stat">
+          <span class="cat-name">${item.category}</span>
+          <span class="cat-games">${item.games} games</span>
+          <div class="cat-progress">
+            <div class="cat-progress-bar" style="width: ${average}%"></div>
           </div>
-        `;
-      }).join('');
-    }
+          <span class="cat-avg">${average}%</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(value);
   }
 }
 
-// Initialize achievement system
 window.achievementSystem = new AchievementSystem();

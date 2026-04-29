@@ -32,21 +32,45 @@
         <h2>Choose Your Challenge</h2>
         <p>Select a category to start the quiz. 10 questions. 15 seconds each. Go!</p>
 
+        <div class="difficulty-panel" aria-labelledby="difficultyTitle">
+          <h3 id="difficultyTitle">Select Difficulty</h3>
+          <div class="difficulty-options">
+            <label class="difficulty-option">
+              <input type="radio" name="difficulty" value="easy" />
+              <span>Easy</span>
+              <small>20 seconds</small>
+            </label>
+            <label class="difficulty-option">
+              <input type="radio" name="difficulty" value="normal" checked />
+              <span>Normal</span>
+              <small>15 seconds</small>
+            </label>
+            <label class="difficulty-option">
+              <input type="radio" name="difficulty" value="hard" />
+              <span>Hard</span>
+              <small>10 seconds</small>
+            </label>
+          </div>
+        </div>
+
         <div class="category-grid">
           <button class="category-btn" data-category="general">
             <span class="icon">🌍</span>
             <strong>General Knowledge</strong>
             <span class="desc">Geography, history, science & more</span>
+            <span id="bestScoreGeneral" class="best-score">Best score: No games yet</span>
           </button>
           <button class="category-btn" data-category="programming">
             <span class="icon">💻</span>
             <strong>Programming</strong>
             <span class="desc">Code, web tech & computer science</span>
+            <span id="bestScoreProgramming" class="best-score">Best score: No games yet</span>
           </button>
           <button class="category-btn" data-category="fun">
             <span class="icon">🎬</span>
             <strong>Fun & Pop Culture</strong>
             <span class="desc">Movies, music, games & trivia</span>
+            <span id="bestScoreFun" class="best-score">Best score: No games yet</span>
           </button>
         </div>
 
@@ -136,6 +160,12 @@
           </thead>
           <tbody><!-- Populated by JS --></tbody>
         </table>
+        <div class="recent-games">
+          <h4>Recent Games</h4>
+          <ul id="recentGamesList" class="recent-games-list">
+            <li>No recent games yet.</li>
+          </ul>
+        </div>
         <button id="closeScoresBtn" class="btn secondary">Close</button>
         <button id="clearScoresBtn" class="btn text danger">Clear My Scores</button>
       </div>
@@ -199,13 +229,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-

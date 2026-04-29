@@ -208,6 +208,56 @@ body {
   margin-bottom: 2rem;
 }
 
+.difficulty-panel {
+  margin: 0 0 2rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.difficulty-panel h3 {
+  margin-bottom: 0.85rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.difficulty-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.difficulty-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.difficulty-option:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.difficulty-option input {
+  margin-bottom: 0.3rem;
+}
+
+.difficulty-option span {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.difficulty-option small {
+  color: var(--text-secondary);
+}
+
 /* ===== CATEGORY GRID ===== */
 .category-grid {
   display: grid;
@@ -249,6 +299,12 @@ body {
 .category-btn .desc {
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+.best-score {
+  font-size: 0.82rem;
+  color: var(--accent-hover);
+  margin-top: 0.2rem;
 }
 
 /* ===== BUTTONS ===== */
@@ -740,6 +796,31 @@ dialog.modal::backdrop {
   color: var(--accent);
 }
 
+.recent-games {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.recent-games h4 {
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.recent-games-list {
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  color: var(--text-secondary);
+}
+
+.recent-games-list li {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+}
+
 /* ===== FOOTER ===== */
 .footer {
   text-align: center;
@@ -774,6 +855,10 @@ dialog.modal::backdrop {
   }
 
   .category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .difficulty-options {
     grid-template-columns: 1fr;
   }
 

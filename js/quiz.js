@@ -1,7 +1,5 @@
-// js/quiz.js - Enhanced Core Quiz Application Logic
 class QuizApp {
   constructor() {
-    // DOM Elements
     this.views = {
       home: document.getElementById('homeView'),
       quiz: document.getElementById('quizView'),
@@ -11,15 +9,17 @@ class QuizApp {
     };
 
     this.elements = {
-      // Home
       categoryBtns: document.querySelectorAll('.category-btn'),
+      difficultyInputs: document.querySelectorAll('input[name="difficulty"]'),
       highScoresBtn: document.getElementById('highScoresBtn'),
       howToBtn: document.getElementById('howToBtn'),
       achievementsBtn: document.getElementById('achievementsBtn'),
       statsBtn: document.getElementById('statsBtn'),
       dailyChallengeBtn: document.getElementById('dailyChallengeBtn'),
-
-      // Quiz
+      homeLogo: document.getElementById('homeLogo'),
+      themeToggle: document.getElementById('themeToggle'),
+      soundToggle: document.getElementById('soundToggle'),
+      dailyStreak: document.getElementById('dailyStreak'),
       questionText: document.getElementById('questionText'),
       optionsContainer: document.getElementById('optionsContainer'),
       feedback: document.getElementById('feedback'),
@@ -28,16 +28,12 @@ class QuizApp {
       questionCounter: document.getElementById('questionCounter'),
       timerDisplay: document.getElementById('timer'),
       scoreDisplay: document.getElementById('scoreDisplay'),
-
-      // Power-ups
       powerupFiftyFifty: document.getElementById('powerupFiftyFifty'),
       powerupExtraTime: document.getElementById('powerupExtraTime'),
       powerupSkip: document.getElementById('powerupSkip'),
       fiftyFiftyCount: document.getElementById('fiftyFiftyCount'),
       extraTimeCount: document.getElementById('extraTimeCount'),
       skipCount: document.getElementById('skipCount'),
-
-      // Results
       finalScore: document.getElementById('finalScore'),
       resultsMessage: document.getElementById('resultsMessage'),
       correctCount: document.getElementById('correctCount'),
@@ -45,18 +41,20 @@ class QuizApp {
       accuracy: document.getElementById('accuracy'),
       timeBonus: document.getElementById('timeBonus'),
       xpGained: document.getElementById('xpGained'),
+      unlockedAchievements: document.getElementById('unlockedAchievements'),
+      reviewList: document.getElementById('reviewList'),
       playAgainBtn: document.getElementById('playAgainBtn'),
       viewScoresBtn: document.getElementById('viewScoresBtn'),
       shareBtn: document.getElementById('shareBtn'),
+      bestScoreGeneral: document.getElementById('bestScoreGeneral'),
+      bestScoreProgramming: document.getElementById('bestScoreProgramming'),
+      bestScoreFun: document.getElementById('bestScoreFun'),
       confettiCanvas: document.getElementById('confettiCanvas'),
-
-      // Navigation
       backFromAchievements: document.getElementById('backFromAchievements'),
       backFromStats: document.getElementById('backFromStats'),
-
-      // Modals
       scoresModal: document.getElementById('scoresModal'),
       scoresTable: document.getElementById('scoresTable'),
+      recentGamesList: document.getElementById('recentGamesList'),
       closeScoresBtn: document.getElementById('closeScoresBtn'),
       clearScoresBtn: document.getElementById('clearScoresBtn'),
       howToModal: document.getElementById('howToModal'),
@@ -65,42 +63,19 @@ class QuizApp {
       playerNameForm: document.getElementById('playerNameForm'),
       playerNameInput: document.getElementById('playerNameInput'),
       playerNameError: document.getElementById('playerNameError'),
-      cancelPlayerNameBtn: document.getElementById('cancelPlayerNameBtn'),
-
-      // Controls
-      themeToggle: document.getElementById('themeToggle'),
-      homeLogo: document.getElementById('homeLogo'),
-      soundToggle: document.getElementById('soundToggle'),
-      dailyStreak: document.getElementById('dailyStreak'),
-      totalPoints: document.getElementById('totalPoints')
+      cancelPlayerNameBtn: document.getElementById('cancelPlayerNameBtn')
     };
 
-    // State
-    this.state = {
-      currentCategory: null,
-      currentQuestionIndex: 0,
-      score: 0,
-      userAnswers: [],
-      timer: null,
-      timeRemaining: 15,
-      isAnswered: false,
-      powerups: {
-        fiftyFifty: 1,
-        extraTime: 1,
-        skip: 1
-      },
-      currentStreak: 0,
-      bestStreak: 0,
-      totalTimeRemaining: 0,
-      powerupsUsed: []
-    };
-
-    // Constants
     this.QUESTIONS_PER_QUIZ = 10;
     this.TIME_PER_QUESTION = 15;
+    this.difficultySettings = {
+      easy: { label: 'Easy', time: 20 },
+      normal: { label: 'Normal', time: 15 },
+      hard: { label: 'Hard', time: 10 }
+    };
     this.soundEnabled = true;
-
-    // Initialize
+    this.audioContext = null;
+    this.resetQuizState();
     this.init();
   }
 
@@ -108,148 +83,121 @@ class QuizApp {
     this.setupEventListeners();
     this.loadTheme();
     this.loadSoundPreference();
+    this.loadDifficultyPreference();
     this.renderHighScores();
+    this.renderRecentGames();
+    this.renderBestScores();
     this.updateDailyStreak();
     this.updateStatsDisplay();
     this.setupKeyboardNavigation();
   }
 
+  resetQuizState() {
+    clearInterval(this.state?.timer);
+    this.state = {
+      currentCategory: null,
+      currentQuestionIndex: 0,
+      score: 0,
+      userAnswers: [],
+      timer: null,
+      timeRemaining: this.TIME_PER_QUESTION,
+      isAnswered: false,
+      powerups: { fiftyFifty: 1, extraTime: 1, skip: 1 },
+      currentStreak: 0,
+      bestStreak: 0,
+      totalTimeRemaining: 0,
+      powerupsUsed: [],
+      fastestAnswerTime: null,
+      timePerQuestion: this.TIME_PER_QUESTION,
+      difficulty: this.getSelectedDifficulty(),
+      mode: 'normal'
+    };
+  }
+
   setupEventListeners() {
-  // Category selection
-  this.elements.categoryBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const category = e.currentTarget.dataset.category;
-      this.startQuiz(category);
+    this.elements.categoryBtns.forEach((btn) => {
+      btn.addEventListener('click', (event) => this.startQuiz(event.currentTarget.dataset.category));
     });
-  });
-
-  // Navigation buttons
-  this.elements.highScoresBtn.addEventListener('click', () => this.openModal('scores'));
-  this.elements.howToBtn.addEventListener('click', () => this.openModal('howTo'));
-  
-  // MODAL CLOSE BUTTONS - FIXED
-  if (this.elements.closeScoresBtn) {
-    this.elements.closeScoresBtn.addEventListener('click', () => this.closeModal('scores'));
-  }
-  
-  if (this.elements.closeHowToBtn) {
-    this.elements.closeHowToBtn.addEventListener('click', () => this.closeModal('howTo'));
-  }
-  
-  this.elements.clearScoresBtn.addEventListener('click', () => this.clearScores());
-
-  // Results actions
-  this.elements.playAgainBtn.addEventListener('click', () => this.showView('home'));
-  this.elements.viewScoresBtn.addEventListener('click', () => {
-    this.closeModal('scores');
-    this.openModal('scores');
-  });
-  this.elements.shareBtn.addEventListener('click', () => this.shareResult());
-
-  // Next question
-  this.elements.nextBtn.addEventListener('click', () => this.nextQuestion());
-
-  // Theme toggle
-  this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
-
-  // Logo -> Home navigation
-  if (this.elements.homeLogo) {
-    this.elements.homeLogo.addEventListener('click', () => {
-      this.closeModal('scores');
-      this.closeModal('howTo');
-      this.showView('home');
+    this.elements.highScoresBtn?.addEventListener('click', () => this.openModal('scores'));
+    this.elements.howToBtn?.addEventListener('click', () => this.openModal('howTo'));
+    this.elements.achievementsBtn?.addEventListener('click', () => this.showAchievements());
+    this.elements.statsBtn?.addEventListener('click', () => this.showStatistics());
+    this.elements.dailyChallengeBtn?.addEventListener('click', () => this.startDailyChallenge());
+    this.elements.closeScoresBtn?.addEventListener('click', () => this.closeModal('scores'));
+    this.elements.closeHowToBtn?.addEventListener('click', () => this.closeModal('howTo'));
+    this.elements.clearScoresBtn?.addEventListener('click', () => this.clearScores());
+    this.elements.playAgainBtn?.addEventListener('click', () => this.showView('home'));
+    this.elements.viewScoresBtn?.addEventListener('click', () => this.openModal('scores'));
+    this.elements.shareBtn?.addEventListener('click', () => this.shareResult());
+    this.elements.nextBtn?.addEventListener('click', () => this.nextQuestion());
+    this.elements.themeToggle?.addEventListener('click', () => this.toggleTheme());
+    this.elements.difficultyInputs?.forEach((input) => {
+      input.addEventListener('change', (event) => this.setDifficulty(event.target.value));
     });
-    this.elements.homeLogo.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.elements.homeLogo.click();
-      }
-    });
-  }
+    this.elements.soundToggle?.addEventListener('click', () => this.toggleSound());
+    this.elements.powerupFiftyFifty?.addEventListener('click', () => this.usePowerup('fiftyFifty'));
+    this.elements.powerupExtraTime?.addEventListener('click', () => this.usePowerup('extraTime'));
+    this.elements.powerupSkip?.addEventListener('click', () => this.usePowerup('skip'));
+    this.elements.backFromAchievements?.addEventListener('click', () => this.showView('home'));
+    this.elements.backFromStats?.addEventListener('click', () => this.showView('home'));
 
-  // Close modals on outside click
-  window.addEventListener('click', (e) => {
-    if (e.target === this.elements.scoresModal) this.closeModal('scores');
-    if (e.target === this.elements.howToModal) this.closeModal('howTo');
-  });
-}
+    if (this.elements.homeLogo) {
+      const goHome = () => {
+        this.closeModal('scores');
+        this.closeModal('howTo');
+        this.showView('home');
+      };
+      this.elements.homeLogo.addEventListener('click', goHome);
+      this.elements.homeLogo.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          goHome();
+        }
+      });
+    }
+  }
 
   setupKeyboardNavigation() {
-    document.addEventListener('keydown', (e) => {
-      // Only handle if quiz view is active and not answered
-      if (!this.views.quiz.classList.contains('active') || this.state.isAnswered) return;
-
-      // Number keys 1-4 for options
-      const key = parseInt(e.key);
+    document.addEventListener('keydown', (event) => {
+      if (!this.views.quiz?.classList.contains('active') || this.state.isAnswered) return;
+      const key = Number.parseInt(event.key, 10);
       if (key >= 1 && key <= 4) {
         const options = this.elements.optionsContainer.querySelectorAll('.option-btn');
-        if (options[key - 1] && !options[key - 1].disabled) {
-          options[key - 1].click();
-        }
+        if (options[key - 1] && !options[key - 1].disabled) options[key - 1].click();
       }
-
-      // Spacebar for next question (if available)
-      if (e.key === ' ' && !this.elements.nextBtn.classList.contains('hidden')) {
-        e.preventDefault();
+      if (event.key === ' ' && !this.elements.nextBtn.classList.contains('hidden')) {
+        event.preventDefault();
         this.elements.nextBtn.click();
       }
     });
   }
 
-  // ===== VIEW MANAGEMENT =====
   showView(viewName) {
-    // Hide all views
-    Object.values(this.views).forEach(view => {
-      if (view) view.classList.remove('active');
-    });
-    
-    // Show target view
-    if (this.views[viewName]) {
-      this.views[viewName].classList.add('active');
-    }
-
-    // Reset quiz state only when returning to home.
-    // Keep state intact for results/achievements/stats screens.
+    Object.values(this.views).forEach((view) => view?.classList.remove('active'));
+    this.views[viewName]?.classList.add('active');
     if (viewName === 'home') {
       this.resetQuizState();
+      this.updatePowerupDisplay();
     }
   }
 
-  // ===== QUIZ FLOW =====
   startQuiz(category, mode = 'normal') {
-    this.promptForPlayerName().then((isConfirmed) => {
-      if (!isConfirmed) return;
-      this.beginQuiz(category, mode);
+    this.promptForPlayerName().then((confirmed) => {
+      if (confirmed) this.beginQuiz(category, mode);
     });
   }
 
   beginQuiz(category, mode = 'normal') {
+    this.resetQuizState();
     this.state.currentCategory = category;
-    this.state.currentQuestionIndex = 0;
-    this.state.score = 0;
-    this.state.userAnswers = [];
-    this.state.currentStreak = 0;
-    this.state.bestStreak = 0;
-    this.state.totalTimeRemaining = 0;
-    this.state.powerupsUsed = [];
     this.state.mode = mode;
-
-    // Reset powerups for normal mode
-    if (mode === 'normal') {
-      this.state.powerups = {
-        fiftyFifty: 1,
-        extraTime: 1,
-        skip: 1
-      };
-    }
-
-    // Get questions and shuffle
-    const questions = [...quizData[category]];
-    this.state.questions = this.shuffleArray(questions).slice(0, this.QUESTIONS_PER_QUIZ);
-
-    // Update powerup display
+    this.state.difficulty = this.getSelectedDifficulty();
+    this.state.timePerQuestion = this.difficultySettings[this.state.difficulty]?.time || this.TIME_PER_QUESTION;
+    if (mode === 'daily') this.state.powerups = { fiftyFifty: 2, extraTime: 2, skip: 2 };
+    this.state.questions = this.shuffleArray([...window.quizData[category]]).slice(0, this.QUESTIONS_PER_QUIZ);
+    this.elements.unlockedAchievements?.classList.add('hidden');
+    this.elements.xpGained?.classList.remove('animate');
     this.updatePowerupDisplay();
-
     this.showView('quiz');
     this.loadQuestion();
   }
@@ -262,276 +210,192 @@ class QuizApp {
     const error = this.elements.playerNameError;
     const cancelBtn = this.elements.cancelPlayerNameBtn;
 
-    // Fallback if modal elements are unavailable.
     if (!modal || !form || !input || !error || !cancelBtn) {
-      const fallbackInput = prompt('Enter your name to start the quiz:', currentName);
+      const fallbackInput = window.prompt('Enter your name to start the quiz:', currentName);
       if (fallbackInput === null) return Promise.resolve(false);
-      const trimmedFallbackName = fallbackInput.trim();
-      if (!trimmedFallbackName) {
+      const trimmed = fallbackInput.trim();
+      if (!trimmed) {
         this.showNotification('Please enter your name to play.', 'error');
         return Promise.resolve(false);
       }
-      localStorage.setItem('brainBlistzPlayerName', trimmedFallbackName);
+      localStorage.setItem('brainBlistzPlayerName', trimmed);
       return Promise.resolve(true);
     }
 
     input.value = currentName;
     error.classList.add('hidden');
-    error.textContent = 'Please enter your name to start.';
-
-    if (typeof modal.showModal === 'function') {
-      modal.showModal();
-    } else {
-      modal.classList.add('active');
+    if (typeof modal.showModal === 'function') modal.showModal();
+    else {
       modal.setAttribute('open', '');
+      modal.classList.add('active');
     }
-
     setTimeout(() => input.focus(), 0);
 
     return new Promise((resolve) => {
-      let resolved = false;
-
+      let settled = false;
       const finish = (result) => {
-        if (resolved) return;
-        resolved = true;
+        if (settled) return;
+        settled = true;
         cleanup();
-        if (typeof modal.close === 'function' && modal.hasAttribute('open')) {
-          modal.close();
-        } else {
+        if (typeof modal.close === 'function' && modal.open) modal.close();
+        else {
           modal.classList.remove('active');
           modal.removeAttribute('open');
         }
         resolve(result);
       };
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        const trimmedName = input.value.trim();
-        if (!trimmedName) {
+      const submitHandler = (event) => {
+        event.preventDefault();
+        const trimmed = input.value.trim();
+        if (!trimmed) {
           error.classList.remove('hidden');
           input.focus();
           return;
         }
-        localStorage.setItem('brainBlistzPlayerName', trimmedName);
+        localStorage.setItem('brainBlistzPlayerName', trimmed);
         finish(true);
       };
-
-      const handleCancel = (e) => {
-        if (e) e.preventDefault();
+      const cancelHandler = (event) => {
+        event?.preventDefault();
         finish(false);
       };
-
-      const handleDialogCancel = (e) => {
-        e.preventDefault();
+      const dialogCancelHandler = (event) => {
+        event.preventDefault();
         finish(false);
       };
-
       const cleanup = () => {
-        form.removeEventListener('submit', handleSubmit);
-        cancelBtn.removeEventListener('click', handleCancel);
-        modal.removeEventListener('cancel', handleDialogCancel);
+        form.removeEventListener('submit', submitHandler);
+        cancelBtn.removeEventListener('click', cancelHandler);
+        modal.removeEventListener('cancel', dialogCancelHandler);
       };
-
-      form.addEventListener('submit', handleSubmit);
-      cancelBtn.addEventListener('click', handleCancel);
-      modal.addEventListener('cancel', handleDialogCancel);
+      form.addEventListener('submit', submitHandler);
+      cancelBtn.addEventListener('click', cancelHandler);
+      modal.addEventListener('cancel', dialogCancelHandler);
     });
   }
 
   startDailyChallenge() {
-    // Check if daily challenge is available
     const lastDaily = localStorage.getItem('brainBlistzLastDaily');
     const today = new Date().toDateString();
-    
     if (lastDaily === today) {
-      this.showNotification('Daily challenge already completed! Come back tomorrow!', 'info');
+      this.showNotification('Daily challenge already completed. Come back tomorrow.', 'info');
       return;
     }
-
-    // Give extra powerups for daily challenge
-    this.state.powerups = {
-      fiftyFifty: 2,
-      extraTime: 2,
-      skip: 2
-    };
-
-    // Start with random category
     const categories = ['general', 'programming', 'fun'];
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    
-    this.startQuiz(randomCategory, 'daily');
+    this.startQuiz(categories[Math.floor(Math.random() * categories.length)], 'daily');
   }
 
   loadQuestion() {
-    const { currentQuestionIndex, questions } = this.state;
-    const question = questions[currentQuestionIndex];
-
-    // Update UI
-    this.elements.questionCounter.textContent = `Question ${currentQuestionIndex + 1}/${this.QUESTIONS_PER_QUIZ}`;
-    this.elements.progressBar.style.width = `${((currentQuestionIndex) / this.QUESTIONS_PER_QUIZ) * 100}%`;
+    const question = this.state.questions[this.state.currentQuestionIndex];
+    if (!question) return;
+    this.elements.questionCounter.textContent = `Question ${this.state.currentQuestionIndex + 1}/${this.QUESTIONS_PER_QUIZ}`;
+    this.elements.progressBar.style.width = `${(this.state.currentQuestionIndex / this.QUESTIONS_PER_QUIZ) * 100}%`;
     this.elements.questionText.textContent = question.question;
     this.elements.scoreDisplay.textContent = `Score: ${this.state.score}`;
-
-    // Render options
-    this.renderOptions(question.options);
-
-    // Reset feedback & next button
     this.elements.feedback.classList.add('hidden');
     this.elements.nextBtn.classList.add('hidden');
     this.state.isAnswered = false;
-
-    // Enable powerups
+    this.renderOptions(question.options);
     this.updatePowerupDisplay();
-
-    // Start timer
     this.startTimer();
   }
 
   renderOptions(options) {
     this.elements.optionsContainer.innerHTML = '';
-
     options.forEach((option, index) => {
-      const btn = document.createElement('button');
-      btn.className = 'option-btn';
-      btn.innerHTML = `
-        <span class="option-letter">${String.fromCharCode(65 + index)}.</span>
-        <span class="option-text">${option}</span>
-        <span class="option-shortcut">${index + 1}</span>
-      `;
-      btn.dataset.index = index;
-      btn.addEventListener('click', () => this.handleAnswer(index));
-      this.elements.optionsContainer.appendChild(btn);
+      const button = document.createElement('button');
+      button.className = 'option-btn';
+      button.type = 'button';
+      button.innerHTML = `<span class="option-letter">${String.fromCharCode(65 + index)}.</span><span class="option-text">${this.escapeHtml(option)}</span><span class="option-shortcut">${index + 1}</span>`;
+      button.addEventListener('click', () => this.handleAnswer(index));
+      this.elements.optionsContainer.appendChild(button);
     });
   }
 
   handleAnswer(selectedIndex) {
     if (this.state.isAnswered) return;
-
-    const answerTime = this.TIME_PER_QUESTION - this.state.timeRemaining;
+    const answerTime = this.state.timePerQuestion - this.state.timeRemaining;
+    this.state.fastestAnswerTime = this.state.fastestAnswerTime === null ? answerTime : Math.min(this.state.fastestAnswerTime, answerTime);
     this.state.isAnswered = true;
     clearInterval(this.state.timer);
-
     const question = this.state.questions[this.state.currentQuestionIndex];
-    const isCorrect = selectedIndex >= 0 && question.options[selectedIndex] === question.answer;
-
-    // Update state
+    const selectedAnswer = selectedIndex >= 0 ? question.options[selectedIndex] : 'No answer';
+    const isCorrect = selectedAnswer === question.answer;
     this.state.userAnswers.push({
       question: question.question,
-      selected: selectedIndex >= 0 ? question.options[selectedIndex] : 'No answer',
+      selected: selectedAnswer,
       correct: question.answer,
+      explanation: question.explanation || 'No explanation available for this question yet.',
       isCorrect
     });
-
     if (isCorrect) {
-      this.state.score++;
-      this.state.currentStreak++;
+      this.state.score += 1;
+      this.state.currentStreak += 1;
       this.state.bestStreak = Math.max(this.state.bestStreak, this.state.currentStreak);
+      if (answerTime <= 3) this.state.totalTimeRemaining += 5;
       this.playSound('correct');
-      
-      // Add time bonus for quick answers
-      if (answerTime <= 3) {
-        this.state.totalTimeRemaining += 5; // Bonus time
-      }
     } else {
       this.state.currentStreak = 0;
       this.playSound('wrong');
     }
-
-    // Add to total time remaining (for time bonus)
     this.state.totalTimeRemaining += this.state.timeRemaining;
-
-    // Visual feedback
-    if (selectedIndex >= 0) {
-      this.showAnswerFeedback(selectedIndex, question.answer, isCorrect);
-    } else {
-      // Time's up - show correct answer
-      this.showTimeUpFeedback(question.answer);
-    }
-
-    // Show next button
+    if (selectedIndex >= 0) this.showAnswerFeedback(selectedIndex, question.answer, isCorrect);
+    else this.showTimeUpFeedback(question.answer);
     this.elements.nextBtn.classList.remove('hidden');
-
-    // Update score display
     this.elements.scoreDisplay.textContent = `Score: ${this.state.score}`;
-
-    // Disable powerups
     this.disablePowerups();
   }
 
   showAnswerFeedback(selectedIndex, correctAnswer, isCorrect) {
     const options = this.elements.optionsContainer.querySelectorAll('.option-btn');
-
-    // Disable all options
-    options.forEach(btn => btn.disabled = true);
-
-    // Highlight selected answer
+    options.forEach((button) => { button.disabled = true; });
     options[selectedIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
-
-    // If wrong, show correct answer
     if (!isCorrect) {
       const correctIndex = this.state.questions[this.state.currentQuestionIndex].options.indexOf(correctAnswer);
-      if (correctIndex !== -1 && correctIndex !== selectedIndex) {
-        options[correctIndex].classList.add('correct');
-      }
+      if (correctIndex !== -1 && correctIndex !== selectedIndex) options[correctIndex].classList.add('correct');
     }
-
-    // Show feedback message with animation
-    this.elements.feedback.innerHTML = isCorrect
-      ? `🎉 Correct! ${this.state.currentStreak > 1 ? `Streak: ${this.state.currentStreak} 🔥` : 'Well done!'}`
-      : `❌ Incorrect. The answer is: ${correctAnswer}`;
-    
+    const baseMessage = isCorrect
+      ? (this.state.currentStreak > 1 ? `Correct. Streak: ${this.state.currentStreak}` : 'Correct. Well done.')
+      : `Incorrect. The answer is: ${correctAnswer}`;
+    const explanation = this.state.questions[this.state.currentQuestionIndex].explanation;
+    this.elements.feedback.innerHTML = `<strong>${this.escapeHtml(baseMessage)}</strong>${explanation ? `<span class="feedback-explanation">${this.escapeHtml(explanation)}</span>` : ''}`;
     this.elements.feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
     this.elements.feedback.classList.remove('hidden');
   }
 
   showTimeUpFeedback(correctAnswer) {
     const options = this.elements.optionsContainer.querySelectorAll('.option-btn');
-    
-    // Disable all options
-    options.forEach(btn => btn.disabled = true);
-
-    // Show correct answer
+    options.forEach((button) => { button.disabled = true; });
     const correctIndex = this.state.questions[this.state.currentQuestionIndex].options.indexOf(correctAnswer);
-    if (correctIndex !== -1) {
-      options[correctIndex].classList.add('correct');
-    }
-
-    this.elements.feedback.innerHTML = `⏰ Time's up! The answer is: ${correctAnswer}`;
+    if (correctIndex !== -1) options[correctIndex].classList.add('correct');
+    const explanation = this.state.questions[this.state.currentQuestionIndex].explanation;
+    this.elements.feedback.innerHTML = `<strong>${this.escapeHtml(`Time is up. The answer is: ${correctAnswer}`)}</strong>${explanation ? `<span class="feedback-explanation">${this.escapeHtml(explanation)}</span>` : ''}`;
     this.elements.feedback.className = 'feedback incorrect';
     this.elements.feedback.classList.remove('hidden');
   }
 
   nextQuestion() {
-    this.state.currentQuestionIndex++;
-
-    if (this.state.currentQuestionIndex < this.QUESTIONS_PER_QUIZ) {
-      this.loadQuestion();
-    } else {
-      this.showResults();
-    }
+    this.state.currentQuestionIndex += 1;
+    if (this.state.currentQuestionIndex < this.QUESTIONS_PER_QUIZ) this.loadQuestion();
+    else this.showResults();
   }
 
   startTimer() {
-    this.state.timeRemaining = this.TIME_PER_QUESTION;
+    this.state.timeRemaining = this.state.timePerQuestion;
     this.updateTimerDisplay();
-
-    this.state.timer = setInterval(() => {
-      this.state.timeRemaining--;
+    this.state.timer = window.setInterval(() => {
+      this.state.timeRemaining -= 1;
       this.updateTimerDisplay();
-
       if (this.state.timeRemaining <= 0) {
         clearInterval(this.state.timer);
-        if (!this.state.isAnswered) {
-          this.handleAnswer(-1);
-        }
+        if (!this.state.isAnswered) this.handleAnswer(-1);
       }
     }, 1000);
   }
 
   updateTimerDisplay() {
-    this.elements.timerDisplay.textContent = `⏱️ ${this.state.timeRemaining}s`;
+    this.elements.timerDisplay.textContent = `${this.state.timeRemaining}s`;
     this.elements.timerDisplay.classList.remove('warning', 'danger');
-    
     if (this.state.timeRemaining <= 5) {
       this.elements.timerDisplay.classList.add('danger');
       this.playSound('tick');
@@ -540,27 +404,14 @@ class QuizApp {
     }
   }
 
-  // ===== POWER-UPS =====
   usePowerup(type) {
-    if (this.state.isAnswered) return;
-    if (this.state.powerups[type] <= 0) return;
-
-    this.state.powerups[type]--;
+    if (this.state.isAnswered || this.state.powerups[type] <= 0) return;
+    this.state.powerups[type] -= 1;
     this.state.powerupsUsed.push(type);
     this.playSound('powerup');
-
-    switch(type) {
-      case 'fiftyFifty':
-        this.useFiftyFifty();
-        break;
-      case 'extraTime':
-        this.useExtraTime();
-        break;
-      case 'skip':
-        this.useSkip();
-        break;
-    }
-
+    if (type === 'fiftyFifty') this.useFiftyFifty();
+    if (type === 'extraTime') this.useExtraTime();
+    if (type === 'skip') this.useSkip();
     this.updatePowerupDisplay();
   }
 
@@ -568,61 +419,38 @@ class QuizApp {
     const question = this.state.questions[this.state.currentQuestionIndex];
     const options = this.elements.optionsContainer.querySelectorAll('.option-btn');
     const correctIndex = question.options.indexOf(question.answer);
-    
-    // Find two wrong answers to remove
     const wrongIndices = [];
-    for (let i = 0; i < question.options.length; i++) {
-      if (i !== correctIndex) wrongIndices.push(i);
+    for (let index = 0; index < question.options.length; index += 1) {
+      if (index !== correctIndex) wrongIndices.push(index);
     }
-    
-    // Shuffle and remove two wrong answers
-    this.shuffleArray(wrongIndices).slice(0, 2).forEach(index => {
+    this.shuffleArray(wrongIndices).slice(0, 2).forEach((index) => {
       options[index].disabled = true;
       options[index].classList.add('disabled');
     });
-
-    this.showNotification('Two wrong answers removed!', 'info');
+    this.showNotification('Two wrong answers removed.', 'info');
   }
 
   useExtraTime() {
     this.state.timeRemaining += 10;
     this.updateTimerDisplay();
-    this.showNotification('+10 seconds added!', 'success');
+    this.showNotification('Ten seconds added.', 'success');
   }
 
   useSkip() {
     clearInterval(this.state.timer);
-    this.state.currentQuestionIndex++;
-    
-    if (this.state.currentQuestionIndex < this.QUESTIONS_PER_QUIZ) {
-      this.loadQuestion();
-    } else {
-      this.showResults();
-    }
-    
-    this.showNotification('Question skipped!', 'info');
+    this.state.currentQuestionIndex += 1;
+    if (this.state.currentQuestionIndex < this.QUESTIONS_PER_QUIZ) this.loadQuestion();
+    else this.showResults();
+    this.showNotification('Question skipped.', 'info');
   }
 
   updatePowerupDisplay() {
-    if (this.elements.fiftyFiftyCount) {
-      this.elements.fiftyFiftyCount.textContent = this.state.powerups.fiftyFifty;
-    }
-    if (this.elements.extraTimeCount) {
-      this.elements.extraTimeCount.textContent = this.state.powerups.extraTime;
-    }
-    if (this.elements.skipCount) {
-      this.elements.skipCount.textContent = this.state.powerups.skip;
-    }
-
-    if (this.elements.powerupFiftyFifty) {
-      this.elements.powerupFiftyFifty.disabled = this.state.powerups.fiftyFifty <= 0 || this.state.isAnswered;
-    }
-    if (this.elements.powerupExtraTime) {
-      this.elements.powerupExtraTime.disabled = this.state.powerups.extraTime <= 0 || this.state.isAnswered;
-    }
-    if (this.elements.powerupSkip) {
-      this.elements.powerupSkip.disabled = this.state.powerups.skip <= 0 || this.state.isAnswered;
-    }
+    if (this.elements.fiftyFiftyCount) this.elements.fiftyFiftyCount.textContent = this.state.powerups.fiftyFifty;
+    if (this.elements.extraTimeCount) this.elements.extraTimeCount.textContent = this.state.powerups.extraTime;
+    if (this.elements.skipCount) this.elements.skipCount.textContent = this.state.powerups.skip;
+    if (this.elements.powerupFiftyFifty) this.elements.powerupFiftyFifty.disabled = this.state.powerups.fiftyFifty <= 0 || this.state.isAnswered;
+    if (this.elements.powerupExtraTime) this.elements.powerupExtraTime.disabled = this.state.powerups.extraTime <= 0 || this.state.isAnswered;
+    if (this.elements.powerupSkip) this.elements.powerupSkip.disabled = this.state.powerups.skip <= 0 || this.state.isAnswered;
   }
 
   disablePowerups() {
@@ -631,110 +459,98 @@ class QuizApp {
     if (this.elements.powerupSkip) this.elements.powerupSkip.disabled = true;
   }
 
-  // ===== RESULTS =====
   showResults() {
     this.showView('results');
-
-    const { score } = this.state;
+    const score = this.state.score;
     const percentage = Math.round((score / this.QUESTIONS_PER_QUIZ) * 100);
     const timeBonus = Math.floor(this.state.totalTimeRemaining / 2);
-
-    // Update results UI
-    this.elements.finalScore.textContent = `${score}/${this.QUESTIONS_PER_QUIZ}`;
-    this.elements.correctCount.textContent = score;
-    this.elements.incorrectCount.textContent = this.QUESTIONS_PER_QUIZ - score;
-    this.elements.accuracy.textContent = `${percentage}%`;
-    if (this.elements.timeBonus) {
-      this.elements.timeBonus.textContent = `+${timeBonus}`;
-    }
-
-    // Personalized message with streak info
-    let message = '';
-    if (percentage >= 90) message = '🏆 Legendary! You\'re a quiz master!';
-    else if (percentage >= 70) message = '🌟 Excellent! You really know your stuff!';
-    else if (percentage >= 50) message = '👍 Good effort! Keep practicing!';
-    else message = '💪 Nice try! Every expert was once a beginner.';
-
-    if (this.state.bestStreak >= 5) {
-      message += ` 🔥 ${this.state.bestStreak} question streak!`;
-    }
-
-    this.elements.resultsMessage.textContent = message;
-
-    // Calculate XP
     const xpEarned = score * 10 + timeBonus + (this.state.mode === 'daily' ? 50 : 0);
+    this.elements.finalScore.textContent = `${score}/${this.QUESTIONS_PER_QUIZ}`;
+    this.elements.correctCount.textContent = String(score);
+    this.elements.incorrectCount.textContent = String(this.QUESTIONS_PER_QUIZ - score);
+    this.elements.accuracy.textContent = `${percentage}%`;
+    if (this.elements.timeBonus) this.elements.timeBonus.textContent = `+${timeBonus}`;
     if (this.elements.xpGained) {
       this.elements.xpGained.textContent = `+${xpEarned} XP`;
-      this.elements.xpGained.classList.add('animate');
+      this.elements.xpGained.classList.remove('animate');
+      setTimeout(() => this.elements.xpGained?.classList.add('animate'), 20);
     }
-
-    // Save game data
+    let message = 'Nice try. Every expert starts somewhere.';
+    if (percentage >= 90) message = 'Legendary performance. You are a quiz master.';
+    else if (percentage >= 70) message = 'Excellent result. Strong knowledge across the quiz.';
+    else if (percentage >= 50) message = 'Good effort. Keep pushing for a higher score.';
+    if (this.state.bestStreak >= 5) message += ` Best streak: ${this.state.bestStreak}.`;
+    message += ` Difficulty: ${this.difficultySettings[this.state.difficulty]?.label || 'Normal'}.`;
+    this.elements.resultsMessage.textContent = message;
     const gameData = {
       category: this.state.currentCategory,
-      score: score,
+      score,
+      difficulty: this.state.difficulty,
       mode: this.state.mode,
       bestStreak: this.state.bestStreak,
       totalTime: this.state.totalTimeRemaining,
-      powerupsUsed: this.state.powerupsUsed,
+      fastestAnswerTime: this.state.fastestAnswerTime,
+      powerupsUsed: [...this.state.powerupsUsed],
+      xpEarned,
       date: new Date().toISOString()
     };
-
-    // Save high score
     this.saveHighScore(score);
-
-    // Update stats and check achievements
+    this.saveGameHistory(gameData);
+    this.renderBestScores();
     if (window.achievementSystem) {
       window.achievementSystem.updateStats(gameData);
-      window.achievementSystem.checkAchievements(gameData, this.state.bestStreak);
+      window.achievementSystem.checkAchievements(gameData, this.state.bestStreak, this.state.fastestAnswerTime);
+      this.updateStatsDisplay();
     }
-    
-    // Update daily challenge
-    if (this.state.mode === 'daily') {
-      this.completeDailyChallenge();
-    }
-
-    // Trigger confetti for good scores
-    if (percentage >= 70) {
-      this.triggerConfetti();
-    }
+    if (this.state.mode === 'daily') this.completeDailyChallenge();
+    this.renderReview();
+    if (percentage >= 70) this.triggerConfetti();
   }
 
-  // ===== DAILY CHALLENGE =====
+  renderReview() {
+    const reviewList = this.elements.reviewList;
+    if (!reviewList) return;
+
+    if (this.state.userAnswers.length === 0) {
+      reviewList.innerHTML = '<p class="empty-state">Finish a quiz to unlock the review section.</p>';
+      return;
+    }
+
+    reviewList.innerHTML = this.state.userAnswers.map((entry, index) => `
+      <article class="review-card ${entry.isCorrect ? 'correct' : 'incorrect'}">
+        <div class="review-card-header">
+          <span class="review-number">Q${index + 1}</span>
+          <span class="review-status">${entry.isCorrect ? 'Correct' : 'Incorrect'}</span>
+        </div>
+        <h4>${this.escapeHtml(entry.question)}</h4>
+        <p><strong>Your answer:</strong> ${this.escapeHtml(entry.selected)}</p>
+        <p><strong>Correct answer:</strong> ${this.escapeHtml(entry.correct)}</p>
+        <p class="review-explanation">${this.escapeHtml(entry.explanation)}</p>
+      </article>
+    `).join('');
+  }
+
   completeDailyChallenge() {
     const today = new Date().toDateString();
-    localStorage.setItem('brainBlistzLastDaily', today);
-    
-    // Update streak
-    let streak = parseInt(localStorage.getItem('brainBlistzDailyStreak') || '0');
-    const lastDaily = localStorage.getItem('brainBlistzLastDailyDate');
-    
-    if (lastDaily) {
+    const previousDate = localStorage.getItem('brainBlistzLastDailyDate');
+    let streak = Number.parseInt(localStorage.getItem('brainBlistzDailyStreak') || '0', 10);
+    if (previousDate) {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      
-      if (new Date(lastDaily).toDateString() === yesterday.toDateString()) {
-        streak++;
-      } else {
-        streak = 1;
-      }
-    } else {
-      streak = 1;
-    }
-    
-    localStorage.setItem('brainBlistzDailyStreak', streak.toString());
+      streak = new Date(previousDate).toDateString() === yesterday.toDateString() ? streak + 1 : 1;
+    } else streak = 1;
+    localStorage.setItem('brainBlistzLastDaily', today);
     localStorage.setItem('brainBlistzLastDailyDate', today);
-    
+    localStorage.setItem('brainBlistzDailyStreak', String(streak));
     this.updateDailyStreak();
   }
 
   updateDailyStreak() {
+    if (!this.elements.dailyStreak) return;
     const streak = localStorage.getItem('brainBlistzDailyStreak') || '0';
-    if (this.elements.dailyStreak) {
-      this.elements.dailyStreak.innerHTML = `<i class="fas fa-fire"></i> ${streak} day streak`;
-    }
+    this.elements.dailyStreak.textContent = `${streak} day streak`;
   }
 
-  // ===== ACHIEVEMENTS & STATS =====
   showAchievements() {
     if (!window.achievementSystem) return;
     window.achievementSystem.renderAchievements('achievementsGrid');
@@ -748,30 +564,21 @@ class QuizApp {
   }
 
   updateStatsDisplay() {
-    if (window.achievementSystem) {
-      window.achievementSystem.renderStats();
-    }
+    if (window.achievementSystem) window.achievementSystem.renderStats();
   }
 
-  // ===== HIGH SCORES =====
   saveHighScore(score) {
-    const category = this.state.currentCategory;
-    const scores = JSON.parse(localStorage.getItem('brainBlistzScores')) || [];
-
-    // Add new score
+    const scores = JSON.parse(localStorage.getItem('brainBlistzScores') || '[]');
     scores.push({
       name: this.getPlayerName(),
-      score: score,
-      category: category,
+      score,
+      category: this.state.currentCategory,
+      difficulty: this.state.difficulty,
       date: new Date().toISOString(),
       percentage: Math.round((score / this.QUESTIONS_PER_QUIZ) * 100)
     });
-
-    // Sort by score (descending), keep top 20
-    scores.sort((a, b) => b.score - a.score);
-    const topScores = scores.slice(0, 20);
-
-    localStorage.setItem('brainBlistzScores', JSON.stringify(topScores));
+    scores.sort((left, right) => right.score - left.score || new Date(right.date) - new Date(left.date));
+    localStorage.setItem('brainBlistzScores', JSON.stringify(scores.slice(0, 20)));
     this.renderHighScores();
   }
 
@@ -780,90 +587,119 @@ class QuizApp {
   }
 
   renderHighScores() {
-    const scores = JSON.parse(localStorage.getItem('brainBlistzScores')) || [];
-    const tbody = this.elements.scoresTable.querySelector('tbody');
+    const tbody = this.elements.scoresTable?.querySelector('tbody');
+    if (!tbody) return;
+    const scores = JSON.parse(localStorage.getItem('brainBlistzScores') || '[]');
     tbody.innerHTML = '';
-
     if (scores.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No scores yet. Be the first!</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No scores yet. Be the first.</td></tr>';
+      this.renderRecentGames();
       return;
     }
-
     scores.slice(0, 10).forEach((entry, index) => {
       const row = document.createElement('tr');
-      const date = new Date(entry.date).toLocaleDateString();
-      row.innerHTML = `
-        <td>#${index + 1}</td>
-        <td>${this.escapeHtml(entry.name)}</td>
-        <td><strong>${entry.score}/10</strong> (${entry.percentage}%)</td>
-        <td>${entry.category.charAt(0).toUpperCase() + entry.category.slice(1)}</td>
-        <td>${date}</td>
-      `;
+      const category = entry.category ? entry.category.charAt(0).toUpperCase() + entry.category.slice(1) : 'Unknown';
+      row.innerHTML = `<td>#${index + 1}</td><td>${this.escapeHtml(entry.name)}</td><td><strong>${entry.score}/10</strong> (${entry.percentage}%)</td><td>${this.escapeHtml(category)}</td><td>${new Date(entry.date).toLocaleDateString()}</td>`;
       tbody.appendChild(row);
     });
+    this.renderRecentGames();
   }
 
   clearScores() {
-    if (confirm('Clear all your saved high scores? This cannot be undone.')) {
-      localStorage.removeItem('brainBlistzScores');
-      this.renderHighScores();
-    }
+    if (!window.confirm('Clear all saved high scores? This cannot be undone.')) return;
+    localStorage.removeItem('brainBlistzScores');
+    localStorage.removeItem('brainBlistzHistory');
+    this.renderHighScores();
+    this.renderBestScores();
   }
 
-  // ===== NOTIFICATIONS =====
+  saveGameHistory(gameData) {
+    const history = JSON.parse(localStorage.getItem('brainBlistzHistory') || '[]');
+    history.unshift({
+      category: gameData.category,
+      score: gameData.score,
+      difficulty: gameData.difficulty,
+      percentage: Math.round((gameData.score / this.QUESTIONS_PER_QUIZ) * 100),
+      date: gameData.date
+    });
+    localStorage.setItem('brainBlistzHistory', JSON.stringify(history.slice(0, 12)));
+    this.renderRecentGames();
+  }
+
+  renderRecentGames() {
+    const list = this.elements.recentGamesList;
+    if (!list) return;
+    const history = JSON.parse(localStorage.getItem('brainBlistzHistory') || '[]');
+    if (history.length === 0) {
+      list.innerHTML = '<li>No recent games yet.</li>';
+      return;
+    }
+
+    list.innerHTML = history.map((entry) => {
+      const category = entry.category ? entry.category.charAt(0).toUpperCase() + entry.category.slice(1) : 'Unknown';
+      const difficulty = this.difficultySettings[entry.difficulty]?.label || 'Normal';
+      return `<li><strong>${this.escapeHtml(category)}</strong> - ${entry.score}/10 (${entry.percentage}%) - ${this.escapeHtml(difficulty)} - ${new Date(entry.date).toLocaleDateString()}</li>`;
+    }).join('');
+  }
+
+  renderBestScores() {
+    const scores = JSON.parse(localStorage.getItem('brainBlistzScores') || '[]');
+    const categories = [
+      { key: 'general', element: this.elements.bestScoreGeneral, label: 'General' },
+      { key: 'programming', element: this.elements.bestScoreProgramming, label: 'Programming' },
+      { key: 'fun', element: this.elements.bestScoreFun, label: 'Fun' }
+    ];
+
+    categories.forEach(({ key, element }) => {
+      if (!element) return;
+      const best = scores
+        .filter((entry) => entry.category === key)
+        .sort((left, right) => right.score - left.score || right.percentage - left.percentage)[0];
+      element.textContent = best
+        ? `Best score: ${best.score}/10 (${best.percentage}%)`
+        : 'Best score: No games yet';
+    });
+  }
+
+  loadDifficultyPreference() {
+    const savedDifficulty = localStorage.getItem('brainBlistzDifficulty') || 'normal';
+    this.setDifficulty(savedDifficulty, false);
+  }
+
+  setDifficulty(difficulty, persist = true) {
+    const nextDifficulty = this.difficultySettings[difficulty] ? difficulty : 'normal';
+    this.elements.difficultyInputs?.forEach((input) => {
+      input.checked = input.value === nextDifficulty;
+    });
+    if (persist) localStorage.setItem('brainBlistzDifficulty', nextDifficulty);
+  }
+
+  getSelectedDifficulty() {
+    const checked = Array.from(this.elements.difficultyInputs || []).find((input) => input.checked);
+    return checked?.value || localStorage.getItem('brainBlistzDifficulty') || 'normal';
+  }
+
   showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    notification.innerHTML = `
-      <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-      <span>${message}</span>
-    `;
-    
+    notification.textContent = message;
     document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.classList.add('show');
-    }, 10);
-    
+    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
     }, 3000);
   }
 
-  // ===== UTILITIES =====
   shuffleArray(array) {
     const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
     }
     return shuffled;
   }
 
-  resetQuizState() {
-    clearInterval(this.state.timer);
-    this.state = {
-      currentCategory: null,
-      currentQuestionIndex: 0,
-      score: 0,
-      userAnswers: [],
-      timer: null,
-      timeRemaining: 15,
-      isAnswered: false,
-      powerups: {
-        fiftyFifty: 1,
-        extraTime: 1,
-        skip: 1
-      },
-      currentStreak: 0,
-      bestStreak: 0,
-      totalTimeRemaining: 0,
-      powerupsUsed: []
-    };
-  }
-
-  // ===== THEME =====
   loadTheme() {
     const savedTheme = localStorage.getItem('brainBlistzTheme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -879,13 +715,9 @@ class QuizApp {
   }
 
   updateThemeIcon(theme) {
-    const icon = this.elements.themeToggle.querySelector('i');
-    if (icon) {
-      icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-    }
+    if (this.elements.themeToggle) this.elements.themeToggle.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`);
   }
 
-  // ===== SOUND =====
   loadSoundPreference() {
     this.soundEnabled = localStorage.getItem('brainBlistzSound') !== 'false';
     this.updateSoundIcon();
@@ -893,223 +725,144 @@ class QuizApp {
 
   toggleSound() {
     this.soundEnabled = !this.soundEnabled;
-    localStorage.setItem('brainBlistzSound', this.soundEnabled);
+    localStorage.setItem('brainBlistzSound', String(this.soundEnabled));
     this.updateSoundIcon();
     this.playSound('click');
   }
 
   updateSoundIcon() {
-    if (!this.elements.soundToggle) return;
-    const icon = this.elements.soundToggle.querySelector('i');
-    if (icon) {
-      icon.className = this.soundEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-    }
+    const icon = this.elements.soundToggle?.querySelector('.sound-icon');
+    if (icon) icon.textContent = this.soundEnabled ? 'SOUND ON' : 'SOUND OFF';
   }
 
   playSound(type) {
     if (!this.soundEnabled || !window.userInteracted) return;
-
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!this.audioContext) this.audioContext = new AudioContextClass();
+    if (this.audioContext.state === 'suspended') this.audioContext.resume().catch(() => {});
     const sounds = {
-      correct: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg',
-      wrong: 'https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg',
-      tick: 'https://actions.google.com/sounds/v1/alarms/clock_tick.ogg',
-      powerup: 'https://actions.google.com/sounds/v1/cartoon/boing.ogg',
-      click: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg'
+      correct: { frequency: 720, duration: 0.12, gain: 0.05, wave: 'triangle' },
+      wrong: { frequency: 220, duration: 0.18, gain: 0.06, wave: 'sawtooth' },
+      tick: { frequency: 480, duration: 0.04, gain: 0.03, wave: 'square' },
+      powerup: { frequency: 880, duration: 0.1, gain: 0.05, wave: 'sine' },
+      click: { frequency: 560, duration: 0.05, gain: 0.03, wave: 'triangle' }
     };
-
-    if (sounds[type]) {
-      const audio = new Audio(sounds[type]);
-      audio.volume = 0.2;
-      audio.play().catch(() => {});
-    }
+    const config = sounds[type];
+    if (!config) return;
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
+    oscillator.type = config.wave;
+    oscillator.frequency.value = config.frequency;
+    gainNode.gain.value = config.gain;
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
+    oscillator.start();
+    oscillator.stop(this.audioContext.currentTime + config.duration);
   }
 
-  // ===== MODALS =====
   openModal(modalName) {
-    if (modalName === 'scores') {
-      this.renderHighScores();
-      this.elements.scoresModal.showModal();
-    } else if (modalName === 'howTo') {
-      this.elements.howToModal.showModal();
+    const modal = modalName === 'scores' ? this.elements.scoresModal : this.elements.howToModal;
+    if (!modal) return;
+    if (modalName === 'scores') this.renderHighScores();
+    if (typeof modal.showModal === 'function') {
+      if (!modal.open) modal.showModal();
+    } else {
+      modal.classList.add('active');
+      modal.setAttribute('open', '');
     }
     document.body.style.overflow = 'hidden';
   }
 
   closeModal(modalName) {
-  if (modalName === 'scores') {
-    if (this.elements.scoresModal && this.elements.scoresModal.open && typeof this.elements.scoresModal.close === 'function') {
-      this.elements.scoresModal.close();
-    } else if (this.elements.scoresModal) {
-      // Fallback
-      this.elements.scoresModal.classList.remove('active');
-      this.elements.scoresModal.removeAttribute('open');
+    const modal = modalName === 'scores' ? this.elements.scoresModal : this.elements.howToModal;
+    if (!modal) return;
+    if (typeof modal.close === 'function' && modal.open) modal.close();
+    else {
+      modal.classList.remove('active');
+      modal.removeAttribute('open');
     }
-  } else if (modalName === 'howTo') {
-    if (this.elements.howToModal && this.elements.howToModal.open && typeof this.elements.howToModal.close === 'function') {
-      this.elements.howToModal.close();
-    } else if (this.elements.howToModal) {
-      // Fallback
-      this.elements.howToModal.classList.remove('active');
-      this.elements.howToModal.removeAttribute('open');
-    }
+    document.body.style.overflow = '';
   }
-  // Restore background scrolling
-  document.body.style.overflow = '';
-}
 
-  // ===== SHARING =====
   async shareResult() {
-    const { score } = this.state;
+    const score = this.state.score;
     const percentage = Math.round((score / this.QUESTIONS_PER_QUIZ) * 100);
-    const category = this.state.currentCategory;
-    const text = `I scored ${score}/10 (${percentage}%) on the ${category} quiz at BrainBlistz! Can you beat me? 🎯`;
-
+    const text = `I scored ${score}/10 (${percentage}%) on BrainBlistz.`;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'BrainBlistz Quiz Result',
-          text: text,
-          url: window.location.href
-        });
-      } catch (err) {
-        console.log('Share cancelled');
+        await navigator.share({ title: 'BrainBlistz Quiz Result', text, url: window.location.href });
+        return;
+      } catch (error) {
+        return;
       }
-    } else {
-      navigator.clipboard.writeText(text + '\n\n' + window.location.href)
-        .then(() => this.showNotification('Result copied to clipboard! 📋', 'success'))
-        .catch(() => this.showNotification('Could not copy. Share manually!', 'error'));
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+      this.showNotification('Result copied to clipboard.', 'success');
+    } catch (error) {
+      this.showNotification('Could not copy result automatically.', 'error');
     }
   }
 
-  // ===== CONFETTI =====
   triggerConfetti() {
     const canvas = this.elements.confettiCanvas;
-    const ctx = canvas.getContext('2d');
-
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     canvas.classList.add('active');
-
-    const particles = [];
     const colors = ['#4361ee', '#3f37c9', '#4895ef', '#4cc9f0', '#2ecc71', '#f39c12', '#e74c3c'];
-
-    for (let i = 0; i < 150; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height - canvas.height,
-        size: Math.random() * 8 + 4,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        speed: Math.random() * 3 + 2,
-        angle: Math.random() * 6.28,
-        rotation: Math.random() * 360
-      });
-    }
-
-    let animationFrame;
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach(p => {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rotation * Math.PI / 180);
-
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-
-        ctx.restore();
-
-        p.y += p.speed;
-        p.x += Math.sin(p.angle) * 2;
-        p.rotation += 2;
-
-        if (p.y > canvas.height) {
-          p.y = -20;
-          p.x = Math.random() * canvas.width;
+    const particles = Array.from({ length: 150 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speed: Math.random() * 3 + 2,
+      angle: Math.random() * Math.PI * 2,
+      rotation: Math.random() * 360
+    }));
+    let frameId = null;
+    const draw = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((particle) => {
+        context.save();
+        context.translate(particle.x, particle.y);
+        context.rotate((particle.rotation * Math.PI) / 180);
+        context.fillStyle = particle.color;
+        context.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+        context.restore();
+        particle.y += particle.speed;
+        particle.x += Math.sin(particle.angle) * 2;
+        particle.rotation += 2;
+        if (particle.y > canvas.height) {
+          particle.y = -20;
+          particle.x = Math.random() * canvas.width;
         }
       });
-
-      animationFrame = requestAnimationFrame(animate);
+      frameId = window.requestAnimationFrame(draw);
     };
-
-    animate();
-
+    draw();
     setTimeout(() => {
-      cancelAnimationFrame(animationFrame);
+      if (frameId) window.cancelAnimationFrame(frameId);
       canvas.classList.remove('active');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      context.clearRect(0, 0, canvas.width, canvas.height);
     }, 5000);
   }
 
-  // ===== SECURITY =====
-  escapeHtml(str) {
+  escapeHtml(value) {
     const div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = value;
     return div.innerHTML;
   }
 }
 
-// ===== INITIALIZE APP =====
 window.userInteracted = false;
-document.addEventListener('click', () => {
-  window.userInteracted = true;
-}, { once: true });
-
-document.addEventListener('DOMContentLoaded', () => {
-  window.quizApp = new QuizApp();
-});
-
-// Fallback: ensure logo always navigates to home even if app listeners fail.
-document.addEventListener('DOMContentLoaded', () => {
-  const homeLogo = document.getElementById('homeLogo');
-  if (!homeLogo) return;
-
-  const goHome = () => {
-    if (window.quizApp && typeof window.quizApp.showView === 'function') {
-      window.quizApp.closeModal('scores');
-      window.quizApp.closeModal('howTo');
-      window.quizApp.showView('home');
-      return;
-    }
-
-    ['homeView', 'quizView', 'resultsView', 'achievementsView', 'statsView'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('active');
-    });
-    const homeView = document.getElementById('homeView');
-    if (homeView) homeView.classList.add('active');
-  };
-
-  homeLogo.addEventListener('click', goHome);
-  homeLogo.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      goHome();
-    }
-  });
-});
-
+document.addEventListener('click', () => { window.userInteracted = true; }, { once: true });
+document.addEventListener('DOMContentLoaded', () => { window.quizApp = new QuizApp(); });
 window.addEventListener('resize', () => {
   const canvas = document.getElementById('confettiCanvas');
-  if (canvas) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 });
-
-// Add this at the very end of quiz.js file
-document.addEventListener('DOMContentLoaded', function() {
-  const closeHowToBtn = document.getElementById('closeHowToBtn');
-  if (closeHowToBtn) {
-    closeHowToBtn.addEventListener('click', function() {
-      const modal = document.getElementById('howToModal');
-      if (modal && typeof modal.close === 'function') {
-        modal.close();
-      } else if (modal) {
-        modal.classList.remove('active');
-        modal.removeAttribute('open');
-      }
-    });
-  }
-});
-

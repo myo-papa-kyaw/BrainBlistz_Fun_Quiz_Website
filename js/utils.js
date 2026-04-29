@@ -29,20 +29,10 @@ function trackEvent(category, action, label) {
   console.log(`[Analytics] ${category}:${action}:${label}`);
 }
 
-// Preload critical assets
-function preloadAssets() {
-  // Preload sounds if they exist
-  const sounds = ['correct.mp3', 'wrong.mp3', 'tick.mp3'];
-  sounds.forEach(sound => {
-    const audio = new Audio(`assets/sounds/${sound}`);
-    audio.preload = 'auto';
-  });
-}
+// Reserved for lightweight startup work if needed later.
+function preloadAssets() {}
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-  preloadAssets();
-});
+document.addEventListener('DOMContentLoaded', preloadAssets);
 
 // Export for use in quiz.js
 if (typeof module !== 'undefined' && module.exports) {
