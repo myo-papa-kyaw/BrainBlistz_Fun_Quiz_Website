@@ -96,6 +96,24 @@
         </div>
       </div>
 
+      <div class="powerups-bar" aria-label="Quiz power-ups">
+        <button id="powerupFiftyFifty" class="powerup-btn" type="button" title="Remove two wrong answers">
+          <span aria-hidden="true">50/50</span>
+          <span>Remove 2</span>
+          <span id="fiftyFiftyCount" class="powerup-count">1</span>
+        </button>
+        <button id="powerupExtraTime" class="powerup-btn" type="button" title="Add ten seconds">
+          <span aria-hidden="true">+10s</span>
+          <span>Extra Time</span>
+          <span id="extraTimeCount" class="powerup-count">1</span>
+        </button>
+        <button id="powerupSkip" class="powerup-btn" type="button" title="Skip this question">
+          <span aria-hidden="true">Skip</span>
+          <span>Skip</span>
+          <span id="skipCount" class="powerup-count">1</span>
+        </button>
+      </div>
+
       <div class="card quiz-card">
         <h2 id="questionText">Question loads here...</h2>
 
