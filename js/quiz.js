@@ -159,15 +159,25 @@ class QuizApp {
 
   setupKeyboardNavigation() {
     document.addEventListener('keydown', (event) => {
-      if (!this.views.quiz?.classList.contains('active') || this.state.isAnswered) return;
+      const typingTarget = ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target?.tagName);
+      if (!this.views.quiz?.classList.contains('active') || typingTarget) return;
+
+      if (event.key === ' ') {
+        event.preventDefault();
+        if (this.state.isAnswered && !this.elements.nextBtn.classList.contains('hidden')) {
+          this.elements.nextBtn.click();
+        } else if (!this.state.isAnswered && this.elements.powerupSkip && !this.elements.powerupSkip.disabled) {
+          this.elements.powerupSkip.click();
+        }
+        return;
+      }
+
+      if (this.state.isAnswered) return;
+
       const key = Number.parseInt(event.key, 10);
       if (key >= 1 && key <= 4) {
         const options = this.elements.optionsContainer.querySelectorAll('.option-btn');
         if (options[key - 1] && !options[key - 1].disabled) options[key - 1].click();
-      }
-      if (event.key === ' ' && !this.elements.nextBtn.classList.contains('hidden')) {
-        event.preventDefault();
-        this.elements.nextBtn.click();
       }
     });
   }
