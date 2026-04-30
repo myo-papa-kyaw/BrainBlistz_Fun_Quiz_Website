@@ -43,7 +43,9 @@ class QuizApp {
       xpGained: document.getElementById('xpGained'),
       unlockedAchievements: document.getElementById('unlockedAchievements'),
       reviewList: document.getElementById('reviewList'),
+      quizHomeBtn: document.getElementById('quizHomeBtn'),
       playAgainBtn: document.getElementById('playAgainBtn'),
+      resultsHomeBtn: document.getElementById('resultsHomeBtn'),
       viewScoresBtn: document.getElementById('viewScoresBtn'),
       shareBtn: document.getElementById('shareBtn'),
       bestScoreGeneral: document.getElementById('bestScoreGeneral'),
@@ -127,6 +129,8 @@ class QuizApp {
     this.elements.closeHowToBtn?.addEventListener('click', () => this.closeModal('howTo'));
     this.elements.clearScoresBtn?.addEventListener('click', () => this.clearScores());
     this.elements.playAgainBtn?.addEventListener('click', () => this.showView('home'));
+    this.elements.quizHomeBtn?.addEventListener('click', () => this.goHome());
+    this.elements.resultsHomeBtn?.addEventListener('click', () => this.goHome());
     this.elements.viewScoresBtn?.addEventListener('click', () => this.openModal('scores'));
     this.elements.shareBtn?.addEventListener('click', () => this.shareResult());
     this.elements.nextBtn?.addEventListener('click', () => this.nextQuestion());
@@ -142,11 +146,7 @@ class QuizApp {
     this.elements.backFromStats?.addEventListener('click', () => this.showView('home'));
 
     if (this.elements.homeLogo) {
-      const goHome = () => {
-        this.closeModal('scores');
-        this.closeModal('howTo');
-        this.showView('home');
-      };
+      const goHome = () => this.goHome();
       this.elements.homeLogo.addEventListener('click', goHome);
       this.elements.homeLogo.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -179,6 +179,12 @@ class QuizApp {
       this.resetQuizState();
       this.updatePowerupDisplay();
     }
+  }
+
+  goHome() {
+    this.closeModal('scores');
+    this.closeModal('howTo');
+    this.showView('home');
   }
 
   startQuiz(category, mode = 'normal') {

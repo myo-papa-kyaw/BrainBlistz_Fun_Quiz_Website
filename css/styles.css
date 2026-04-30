@@ -385,6 +385,22 @@ body {
   flex-wrap: wrap;
 }
 
+.back-home-btn {
+  width: fit-content;
+  margin: 0 0 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  text-decoration: none;
+}
+
+.back-home-btn:hover,
+.back-home-btn:focus-visible {
+  color: var(--accent-hover);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
 /* ===== QUIZ VIEW ===== */
 .quiz-header {
   margin-bottom: 1.5rem;
